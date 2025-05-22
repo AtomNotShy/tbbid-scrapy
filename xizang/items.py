@@ -74,3 +74,14 @@ class BidRankItem(scrapy.Item):
     win_amt = scrapy.Field()
     open_time = scrapy.Field()
 
+class BidWinItem(scrapy.Item):
+    bidder_name = scrapy.Field()
+    corp_code = scrapy.Field()
+    project_name = scrapy.Field()
+    area_code = scrapy.Field()
+    win_amt = scrapy.Field()
+    create_time = scrapy.Field()
+    tender_org_name = scrapy.Field()  # 招标单位
+    tos = scrapy.Field()   # 类别
+    url = scrapy.Field()
+    notice_content = scrapy.Field()

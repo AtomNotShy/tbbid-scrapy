@@ -249,8 +249,7 @@ class BidInfoSpider(scrapy.Spider):
                 yield scrapy.Request(
                     url=item['url'],
                     callback=self.parse_stages,
-                    meta={'project_item': project_item},
-                    dont_filter=True  # 确保请求不被过滤
+                    meta={'project_item': project_item}
                 )
                 # return None
 

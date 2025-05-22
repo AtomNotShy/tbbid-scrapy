@@ -131,6 +131,27 @@ class EmployeeInfo(Base):
     def __repr__(self):
         return f"<EmployeeInfo(name='{self.name}', cert_code='{self.cert_code}')>"
 
+class WinnerBidInfo(Base):
+    __tablename__ = 'winner_bid_info'
+    
+    id = Column(Integer, primary_key=True)
+    project_name = Column(String, nullable=False)
+    corp_code = Column(String, ForeignKey('company_info.corp_code', ondelete='CASCADE'), nullable=False)  # 公司代码
+    bidder_name = Column(String)  # 中标单位名称
+    area_code = Column(String)  # 地区代码
+    win_amt = Column(Float)  # 中标金额
+    create_time = Column(DateTime)  # 创建时间
+    tender_org_name = Column(String)  # 招标单位
+    tos = Column(String)  # 类别
+    url = Column(String)  # 详情页URL
+    notice_content = Column(String)  # 公告内容
+    
+    # 添加时间戳
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), 
+                       onupdate=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return f"<BidWinInfo(project_name='{self.project_name}', bidder_name='{self.bidder_name}')>"
 
 # 创建数据库表的函数
 def create_tables(engine):
