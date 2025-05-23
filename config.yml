@@ -1,0 +1,6 @@
+# 开源软件 scrapy web登录账号密码
+USERNAME: admin
+PASSWORD: "qwer2025."
+
+# 【可选】是否开开启前端静态文件预压缩以提升页面加载速度，默认为True
+COMPRESS_STATIC: True
