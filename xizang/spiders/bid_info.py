@@ -15,8 +15,6 @@ import pytz
 from readability import Document
 from lxml import html
 
-#  "https://ggzy.xizang.gov.cn/api/attach/download?attachId=8a8b98fb967bb8dd01968145f2c948db"
-
 
 # 中文数字映射表（简体 + 繁体）
 digit_map = {
@@ -38,7 +36,7 @@ def chinese_to_arabic(chinese: str) -> int:
     支持简体和繁体中文数字转阿拉伯数字（1~99）
     """
     if not chinese:
-        return None
+        return -1
 
     total = 0
     if '十' in chinese or '拾' in chinese:
@@ -58,7 +56,7 @@ def chinese_to_arabic(chinese: str) -> int:
             if ch in digit_map:
                 total = total * 10 + digit_map[ch]
             else:
-                return None
+                return -1
     return total
 
 def extract_section_number_str(title: str) -> str:
@@ -73,7 +71,7 @@ def extract_section_number_str(title: str) -> str:
     if match_chinese:
         chinese_num = match_chinese.group(1)
         num = chinese_to_arabic(chinese_num)
-        if num is not None:
+        if num == -1:
             return f"{num:03d}"
 
     return '001'
@@ -158,7 +156,7 @@ class BidInfoSpider(scrapy.Spider):
             'xizang.pipelines.bidSaver.BidSaverPipeline': 300,
         }
     }
-
+    # scrapy runspider bid_info -a start_date='2025-01-01' -a end_date='2025-02-01'
     # 0101招标 0102 开标 0103 结果 0104澄清
     def __init__(self, start_date=None, end_date=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

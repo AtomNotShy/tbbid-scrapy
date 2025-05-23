@@ -153,6 +153,11 @@ class WinnerBidInfo(Base):
     def __repr__(self):
         return f"<BidWinInfo(project_name='{self.project_name}', bidder_name='{self.bidder_name}')>"
 
+class PersonPerformance(Base):
+    __tablename__ = 'person_performance'
+    id = Column(Integer, primary_key=True)
+
+
 # 创建数据库表的函数
 def create_tables(engine):
     Base.metadata.create_all(engine)

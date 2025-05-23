@@ -26,6 +26,13 @@ class EmployeeItem(scrapy.Item):
     cert_code = scrapy.Field()  # 注册证书编号
     major = scrapy.Field()  # 注册专业
     valid_date = scrapy.Field()  # 注册有效期
+    id = scrapy.Field()
+
+class PersonPerformanceItem(scrapy.Item):
+    name = scrapy.Field()
+    corp_code = scrapy.Field()
+    corp_name = scrapy.Field()
+    project_name = scrapy.Field()
 
 
 class ProjectItem(scrapy.Item):
