@@ -172,6 +172,8 @@ class CompanyEmpInfoSpider(scrapy.Spider):
             employee_item['cert_code'] = person.xpath('./td[3]/text()').get()
             employee_item['role'] = person.xpath('./td[4]/text()').get()
             employee_item['valid_date'] = person.xpath('./td[6]/text()').get()
+            # 添加公司名称用于个人业绩记录
+            employee_item['corp_name'] = company_item['name']
             url = person.xpath('./td[2]//a/@href').get()
             if url.startswith('outside/persondetail'):
                 new_url = url.replace('/outside/persondetail', '/outside/listpersonperformance')

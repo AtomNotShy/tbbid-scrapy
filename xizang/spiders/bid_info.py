@@ -156,7 +156,7 @@ class BidInfoSpider(scrapy.Spider):
             'xizang.pipelines.bidSaver.BidSaverPipeline': 300,
         }
     }
-    # scrapy runspider bid_info -a start_date='2025-01-01' -a end_date='2025-02-01'
+    # scrapy crawl bid_info -a start_date='2025-03-01' -a end_date='2025-04-01'
     # 0101招标 0102 开标 0103 结果 0104澄清
     def __init__(self, start_date=None, end_date=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

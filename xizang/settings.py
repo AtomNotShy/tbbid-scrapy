@@ -105,16 +105,6 @@ TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
 
-DATA_BASE_PARAMS = {
-    'host': 'localhost',
-    'port': 5432,
-    'dbname': 'data',
-    'user': 'atom',
-    'passwd': 'qwerasdf.'
-}
-
-
-
 PROXY_URL = 'http://47.108.227.93:3128'  # 你的Squid代理地址
 PROXY_AUTH = 'myproxyuser:myproxypass'  # 代理用户名:密码
 
