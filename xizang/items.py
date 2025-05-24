@@ -26,13 +26,17 @@ class EmployeeItem(scrapy.Item):
     cert_code = scrapy.Field()  # 注册证书编号
     major = scrapy.Field()  # 注册专业
     valid_date = scrapy.Field()  # 注册有效期
-    id = scrapy.Field()
+    id_number = scrapy.Field()
+    birth_date = scrapy.Field()
+
 
 class PersonPerformanceItem(scrapy.Item):
     name = scrapy.Field()
     corp_code = scrapy.Field()
     corp_name = scrapy.Field()
     project_name = scrapy.Field()
+    data_level = scrapy.Field()  # 数据等级
+    role = scrapy.Field()        # 只拿项目经理
 
 
 class ProjectItem(scrapy.Item):

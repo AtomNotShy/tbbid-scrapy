@@ -39,6 +39,8 @@ class CompanyEmployeePipeline:
                 employee.role = adapter.get('role')
                 employee.major = adapter.get('major')
                 employee.valid_date = adapter.get('valid_date')
+                employee.birth_date = adapter.get('birth_date')
+                employee.id_number = adapter.get('id_number')
             else:
                 # 创建新员工记录
                 employee = EmployeeInfo(
@@ -47,7 +49,9 @@ class CompanyEmployeePipeline:
                     role=adapter.get('role'),
                     cert_code=adapter.get('cert_code'),
                     major=adapter.get('major'),
-                    valid_date=adapter.get('valid_date')
+                    valid_date=adapter.get('valid_date'),
+                    id_number=adapter.get('id_number'),
+                    birth_date=adapter.get('birth_date')
                 )
                 self.session.add(employee)
 

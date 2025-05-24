@@ -122,6 +122,8 @@ class EmployeeInfo(Base):
     cert_code = Column(String, unique=True)  # 注册证书编号
     major = Column(ARRAY(String))  # 注册专业
     valid_date = Column(String)  # 注册有效期
+    birth_date =Column(DateTime, nullable=True)
+    id_number = Column(String)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
