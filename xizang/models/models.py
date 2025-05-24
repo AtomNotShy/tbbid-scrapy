@@ -133,6 +133,23 @@ class EmployeeInfo(Base):
     def __repr__(self):
         return f"<EmployeeInfo(name='{self.name}', cert_code='{self.cert_code}')>"
 
+class PersonPerformance(Base):
+    __tablename__ = 'person_performance'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    corp_code = Column(String, ForeignKey('company_info.corp_code',ondelete='CASCADE'), nullable=False)  # 公司代码
+    corp_name = Column(String, nullable=False)
+    project_name = Column(String, nullable=False)
+    data_level = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+
+    # 添加时间戳
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                       onupdate=lambda: datetime.now(timezone.utc))
+    def __repr__(self):
+        return f"PersonPerformance(name='{self.name}', corp_code='{self.corp_code}')"
+
 class WinnerBidInfo(Base):
     __tablename__ = 'winner_bid_info'
     
@@ -154,11 +171,6 @@ class WinnerBidInfo(Base):
 
     def __repr__(self):
         return f"<BidWinInfo(project_name='{self.project_name}', bidder_name='{self.bidder_name}')>"
-
-class PersonPerformance(Base):
-    __tablename__ = 'person_performance'
-    id = Column(Integer, primary_key=True)
-
 
 # 创建数据库表的函数
 def create_tables(engine):
