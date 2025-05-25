@@ -7,6 +7,7 @@ from xizang.items import BidWinItem,CompanyItem
 from xizang.settings import POSTGRES_URL
 
 class NationalBidListSpider(scrapy.Spider):
+    """在公共交易中心查公司全国业绩"""
     name = 'national_bid_list'
     allowed_domains = ['ggzy.gov.cn']
     start_url = 'https://data.ggzy.gov.cn/yjcx/index/bid_list'
@@ -25,7 +26,7 @@ class NationalBidListSpider(scrapy.Spider):
         self.session = self.Session()
 
     def start_requests(self):
-        query = text("SELECT corp_code, name FROM company_info limit 10")
+        query = text("SELECT corp_code, name FROM company_info WHERE name != 'Temporary Company' ORDER BY RANDOM() LIMIT 400;")
         companies = self.session.execute(query).fetchall()
         self.logger.info(f"Found {len(companies)} companies to process")
         for row in companies:

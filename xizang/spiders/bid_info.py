@@ -147,6 +147,7 @@ def extract_profession_and_level(text):
     return result
 
 class BidInfoSpider(scrapy.Spider):
+    """在公共交易平台查询招标信息"""
     name = "bid_info"
     allowed_domains = ["deal.ggzy.gov.cn", "ggzy.gov.cn"]
     shanghai_tz = pytz.timezone('Asia/Shanghai')
@@ -160,7 +161,7 @@ class BidInfoSpider(scrapy.Spider):
     # 0101招标 0102 开标 0103 结果 0104澄清
     def __init__(self, start_date=None, end_date=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.duration = 10
+        self.duration = 7
         # 获取当前日期
         today = datetime.now()
         # 默认开始日期为当前日期减去7天

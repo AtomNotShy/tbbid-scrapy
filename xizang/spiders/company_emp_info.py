@@ -7,8 +7,10 @@ from xizang.settings import POSTGRES_URL
 import time
 import logging
 
-# 查询西藏公司及员工信息
+
 class CompanyEmpInfoSpider(scrapy.Spider):
+    """在西藏信息查询网站，查询西藏公司及员工信息"""
+
     name = 'company_emp_info'  # scrapy crawl company_emp_info
     allowed_domains = ['221.13.83.27']
     base_url = 'http://221.13.83.27:8010'
