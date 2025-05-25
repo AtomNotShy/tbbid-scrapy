@@ -105,6 +105,7 @@ class CompanyInfo(Base):
     win_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    others = Column(String)  # 备注
     # 建立与员工的关系
     employees = relationship("EmployeeInfo", back_populates="company")
 
@@ -143,6 +144,8 @@ class PersonPerformance(Base):
     project_name = Column(String, nullable=False)
     data_level = Column(String, nullable=False)
     role = Column(String, nullable=False)
+    record_id=Column(String, nullable=True)
+    company_id=Column(String, nullable=True)
 
     # 添加时间戳
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),

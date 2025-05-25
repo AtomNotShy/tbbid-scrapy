@@ -86,10 +86,41 @@ ITEM_PIPELINES = {
     # 'xizang.pipelines.bidSaver.BidSaverPipeline': 300,
 }
 
-# Configure logging
-LOG_LEVEL = 'INFO'  # 设置日志级别
-LOG_FILE = 'bid_crawl.log'  # 将日志保存到文件
-LOG_ENCODING = 'utf-8'
+# Configure logging with rotation
+LOG_ENABLED = False  # 关闭 Scrapy 默认日志
+
+import logging
+from logging.handlers import RotatingFileHandler
+
+# 创建轮转文件处理器
+rotating_handler = RotatingFileHandler(
+    filename='scrapy.log',
+    maxBytes=20 * 1024 * 1024,  # 20MB 单文件大小
+    backupCount=3,             # 保留10个备份文件
+    encoding='utf-8'
+)
+
+# 设置日志格式
+formatter = logging.Formatter('%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+rotating_handler.setFormatter(formatter)
+rotating_handler.setLevel(logging.INFO)
+
+# 配置根日志记录器
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+
+# 清除现有处理器
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+
+# 添加轮转处理器
+root_logger.addHandler(rotating_handler)
+
+# 可选：添加控制台输出
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+console_handler.setLevel(logging.WARNING)  # 控制台只显示警告及以上级别
+root_logger.addHandler(console_handler)
 
 # Configure memory usage
 MEMUSAGE_ENABLED = True

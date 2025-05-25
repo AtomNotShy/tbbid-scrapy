@@ -6,8 +6,8 @@ from xizang.items import CompanyItem, EmployeeItem, PersonPerformanceItem
 from xizang.settings import POSTGRES_URL
 import time
 import logging
-from scrapy.exceptions import CloseSpider
 
+# 查询西藏公司及员工信息
 class CompanyEmpInfoSpider(scrapy.Spider):
     name = 'company_emp_info'  # scrapy crawl company_emp_info
     allowed_domains = ['221.13.83.27']
@@ -35,23 +35,41 @@ class CompanyEmpInfoSpider(scrapy.Spider):
                   AND bidder_name != ''
             ) AS sub
             ORDER BY RANDOM()
-            LIMIT 200;
+            LIMIT 400;
         """)
         
         companies = self.session.execute(query).fetchall()
         self.logger.info(f"Found {len(companies)} companies to process")
         
-        for company in companies:
+        # 使用生成器处理公司列表
+        for name in self.expand_companies(companies):
             company_item = CompanyItem()
-            company_item["name"] = company[0] # company name
+            company_item["name"] = name # company name
             # 构建搜索URL
             search_url = f'{self.base_url}/outside/corps?keywords={quote(company_item["name"])}'
+            logging.info(f'开始爬取{company_item["name"]}')
             yield scrapy.Request(
                 url=search_url,
                 callback=self.parse_search_result,
                 meta={'company_item': company_item}
             )
-    
+
+    def expand_companies(self, companies):
+        """展开包含分号的公司名称，生成器返回公司名称"""
+        for company in companies:
+            name = company[0] if company and len(company) > 0 else ""
+            if ';' in name:
+                # 分割并逐个返回公司名称
+                names = name.split(';')
+                for single_name in names:
+                    cleaned_name = single_name.strip()
+                    if cleaned_name:  # 只返回非空名称
+                        yield cleaned_name
+            else:
+                cleaned_name = name.strip()
+                if cleaned_name:  # 只返回非空名称
+                    yield cleaned_name
+
     def parse_search_result(self, response):
         company_item = response.meta['company_item']
         # 获取公司代码
@@ -90,18 +108,22 @@ class CompanyEmpInfoSpider(scrapy.Spider):
         company_item['valid_date'] = response.xpath(
             '//td[contains(text(), "报送有效期")]/following-sibling::td[1]/text()').get()
         qualifications_list = response.xpath('//*[@id="file1"]/div/table/tbody/tr/td[3]/text()').getall()
-        # 只保留包含“承包一级”、“承包贰级”或“承包三级”的条目，并去重
+        # 只保留包含"承包一级"、"承包贰级"或"承包三级"的条目，并去重
         keywords = {"工程施工", "工程专业", "承包贰级","承包壹级"}
         filtered_qua = list({
             q for q in qualifications_list if any(kw in q for kw in keywords)
         })
         company_item['qualifications'] = filtered_qua
+        others = response.xpath("//*[@class='tooltip-bottom']/text()").get()
+        if others:
+            company_item['others'] = others.strip()
+        logging.info(f'公司信息获取完成：{company_item["name"]}')
         yield company_item
 
     def parse_employee_perform(self, response):
         employee = response.meta['employee']
         perform = response.meta['perform']
-
+        logging.info(f'获取{employee["name"]}员工,个人业绩')
         #'http://221.13.83.27:8010/outside/_viewpersonperformancedetail/20558'
 
         project_name = response.xpath('string(//td[contains(text(), "项目名称")]/following-sibling::td[1])').get().strip()
@@ -117,33 +139,37 @@ class CompanyEmpInfoSpider(scrapy.Spider):
         perform['company_id'] = company_id
 
         yield perform
-        CloseSpider('test')
 
     def parse_employee_detail(self, response):
         employee = response.meta['employee']
+        logging.info(f'开始解析员工{employee["name"]}详情')
         birth_date = response.xpath(
             'string(//td[contains(text(), "出生日期")]/following-sibling::td[1])').get().strip()
         if birth_date:
             employee['birth_date'] = birth_date
 
         # 如果业绩栏为空则直接返回员工信息
-        if response.xpath('//tr[2]').get() is None or len(response.xpath('//tr[2]').get()) == 0:
-            return employee
+        cols = response.xpath('//tbody/tr').extract()
+        if not cols:
+            logging.info('业绩为空')
+            yield employee
+            return
+        detail_urls = response.xpath('//tbody/tr/td[6]/a/@data-details').extract()
+        data_levels = response.xpath('//tbody/tr/td[2]/text()').extract()
+        roles = response.xpath('//tbody/tr/td[5]/text()').extract()
 
-        person_performance_nodes = response.xpath('//tr')
         timestamp_ms = int(time.time() * 1000)
-        for node in person_performance_nodes:
-            project_detail_url = node.xpath('./td[6]/a/@data-details').get()
-            role = node.xpath('./td[5]/text()').get()
-            if project_detail_url is None or role != '项目经理':
+        
+        for role,url,level in zip(roles,detail_urls,data_levels):
+            if url is None or role != '项目经理':
                 continue
             perform = PersonPerformanceItem()
             perform["name"] = employee['name']
             perform["corp_code"] = employee['corp_code']
             perform['corp_name'] = employee['corp_name']
-            perform['data_level'] = node.xpath('./td[2]/text()').get()
+            perform['data_level'] = level
             perform['role'] = '项目经理'
-            url = self.base_url + project_detail_url + f'&_={timestamp_ms}'
+            url = self.base_url + url + f'?_={timestamp_ms}'
             yield scrapy.Request(
                 url=url,
                 callback=self.parse_employee_perform,
@@ -158,9 +184,10 @@ class CompanyEmpInfoSpider(scrapy.Spider):
         corp_code = company_item['corp_code']
         person_list = response.xpath('//tbody/tr')
         if len(person_list) == 0:
-            logging.info(f"No jianzaoshi employee found for {company_item['name']}")
-        timestamp_ms = int(time.time() * 1000)
+            logging.warning(f"{company_item['name']}：无项目经理")
 
+        timestamp_ms = int(time.time() * 1000)
+        logging.info(f'获取{company_item["name"]}员工信息')
         for person in person_list:
             employee_item = EmployeeItem()
             employee_item['corp_code'] = corp_code
@@ -175,7 +202,8 @@ class CompanyEmpInfoSpider(scrapy.Spider):
             # 添加公司名称用于个人业绩记录
             employee_item['corp_name'] = company_item['name']
             url = person.xpath('./td[2]//a/@href').get()
-            if url.startswith('outside/persondetail'):
+            logging.info(f'开始分析员工：{employee_item["name"]}')
+            if url.startswith('/outside/persondetail'):
                 new_url = url.replace('/outside/persondetail', '/outside/listpersonperformance')
                 perform_url = self.base_url + new_url + f'&_={timestamp_ms}'
                 yield scrapy.Request(
@@ -184,6 +212,7 @@ class CompanyEmpInfoSpider(scrapy.Spider):
                     meta={'employee': employee_item}
                 )
             else:
+                logging.warning(f'员工：{employee_item["name"]}：无个人详情')
                 yield employee_item
         page_nums = response.xpath('//*[@class="page-item page-num"]//text()').extract()
         if len(page_nums) == 0:

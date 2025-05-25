@@ -17,11 +17,13 @@ class CompanyItem(scrapy.Item):
     bid_success_count = scrapy.Field()  # 成交次数，默认为0
     bid_count = scrapy.Field()  # 参与投标次数，默认为0
     qualifications = scrapy.Field()
+    others = scrapy.Field() # 其他信息
 
 
 class EmployeeItem(scrapy.Item):
     name = scrapy.Field()  # 人员名称
     corp_code = scrapy.Field()  # 公司代码
+    corp_name = scrapy.Field()
     role = scrapy.Field()  # 角色
     cert_code = scrapy.Field()  # 注册证书编号
     major = scrapy.Field()  # 注册专业
@@ -37,6 +39,8 @@ class PersonPerformanceItem(scrapy.Item):
     project_name = scrapy.Field()
     data_level = scrapy.Field()  # 数据等级
     role = scrapy.Field()        # 只拿项目经理
+    record_id = scrapy.Field() 
+    company_id = scrapy.Field()
 
 
 class ProjectItem(scrapy.Item):
