@@ -5,11 +5,11 @@ from sqlalchemy.exc import IntegrityError
 import logging
 
 from xizang.models.models import create_tables, CompanyInfo, EmployeeInfo, PersonPerformance
-
+from xizang.settings import POSTGRES_URL
 
 class CompanyEmployeePipeline:
     def __init__(self):
-        self.engine = create_engine('postgresql://atom:qwerasdf@localhost:5432/data')
+        self.engine = create_engine(POSTGRES_URL)
         self.Session = sessionmaker(bind=self.engine)
         self.session = self.Session()
         # 创建数据库表
