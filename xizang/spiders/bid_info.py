@@ -1,150 +1,15 @@
 import logging
-import re
 import scrapy
 import json
 
-from bs4 import BeautifulSoup
 
 from xizang.items import ProjectItem, BidItem, BidSectionItem, BidRankItem
 from datetime import datetime, timedelta
 from scrapy.exceptions import CloseSpider
-from xizang.constants import company_qualifications, professional_titles
 from w3lib.url import add_or_replace_parameter
 import pytz
+from xizang.utils.util import analyse_notice,extract_url_from_click,extract_section_number_str,is_number
 
-from readability import Document
-from lxml import html
-
-
-# 中文数字映射表（简体 + 繁体）
-digit_map = {
-    '零': 0, '〇': 0,
-    '一': 1, '壹': 1,
-    '二': 2, '贰': 2, '貳': 2,
-    '三': 3, '叁': 3, '參': 3,
-    '四': 4, '肆': 4,
-    '五': 5, '伍': 5,
-    '六': 6, '陆': 6, '陸': 6,
-    '七': 7, '柒': 7,
-    '八': 8, '捌': 8,
-    '九': 9, '玖': 9,
-    '十': 10, '拾': 10
-}
-
-def chinese_to_arabic(chinese: str) -> int:
-    """
-    支持简体和繁体中文数字转阿拉伯数字（1~99）
-    """
-    if not chinese:
-        return -1
-
-    total = 0
-    if '十' in chinese or '拾' in chinese:
-        chinese = chinese.replace('拾', '十')  # 统一处理
-        parts = chinese.split('十')
-        if parts[0] == '':
-            total += 10  # 如"十一"
-        else:
-            total += digit_map.get(parts[0], 0) * 10
-
-        if len(parts) > 1 and parts[1]:
-            total += digit_map.get(parts[1], 0)
-    else:
-        # 没有"十"的情况：如"三"、"九"
-        total = 0
-        for ch in chinese:
-            if ch in digit_map:
-                total = total * 10 + digit_map[ch]
-            else:
-                return -1
-    return total
-
-def extract_section_number_str(title: str) -> str:
-    """提取标段号并格式化为三位字符串，如 '021'"""
-    # 阿拉伯数字形式
-    match_digit = re.search(r'项目\((\d+)标段\)', title)
-    if match_digit:
-        return f"{int(match_digit.group(1)):03d}"
-
-    # 中文数字形式
-    match_chinese = re.search(r'总承包(.*?)标段', title)
-    if match_chinese:
-        chinese_num = match_chinese.group(1)
-        num = chinese_to_arabic(chinese_num)
-        if num == -1:
-            return f"{num:03d}"
-
-    return '001'
-
-
-def is_number(s):
-    try:
-        float(s)
-        return True
-    except (TypeError, ValueError):
-        return False
-
-
-def extract_url_from_click(click_url):
-    base_url = 'https://www.ggzy.gov.cn/information'
-    m = re.search(
-        r"showDetail\(\s*[^,]+,\s*'[^']*',\s*'([^']*)'\s*\)",
-        click_url
-    )
-    if m:
-        url = m.group(1)
-        return base_url + url
-    else:
-        return None
-
-def extract_funding_source(text: str) -> str:
-    # 匹配"资金来源"或"资金来自"后面的内容，直到遇到"招标人"或"项目"或"."等标点符号
-    pattern = r"(?:资金来源|资金来自)[：:\s]*([^，。；\n]*?)(?=，招标人|，项目|。|；|$)"
-    match = re.search(pattern, text)
-    if match:
-        return match.group(1).strip()
-    return ""
-
-def extract_duration(text: str) -> str:
-    # 匹配"工期"或"计划工期"后面的内容，包括括号内的信息
-    pattern = r"(?:计划)?工期[：:\s]*([\d一二三四五六七八九十百]+[年月天日]{1,2}(?:（[\d一二三四五六七八九十百]+[日历天日]{1,2}）)?)"
-    match = re.search(pattern, text)
-    if match:
-        return match.group(1)
-    return ""
-
-# 公司资质
-def extract_construction_qualification(text: str) -> list:
-    # 构建明确的工程类型正则（用"|"分隔）
-    categories = company_qualifications
-    category_pattern = "|".join(categories)
-    # 完整正则：匹配"某类工程施工总承包X级"
-    pattern = rf"(?:{category_pattern})施工总承包[一二三四五六七八九十壹贰叁肆伍陆柒捌玖拾特]+级"
-    return re.findall(pattern, text)
-
-
-# 人员资质
-def extract_profession_and_level(text):
-    # 定义等级模式（例如：一级、二级、叁级等，包含"以上"）
-    level_pattern = r"(一级|二级|叁级|贰级|四级|五级|以上|含.*?级)"
-
-    # 将专业名构建成正则表达式
-    professional_pattern = "|".join([re.escape(prof) for prof in professional_titles])
-
-    # 定义匹配专业和等级的正则表达式
-    pattern = rf"((?<=：)|(?<=要求))(.+?({professional_pattern})专业.*?({level_pattern})?.*?注册建造师执业资格)"
-
-    # 使用正则表达式查找匹配项
-    matches = re.findall(pattern, text)
-
-    # 提取匹配的专业和等级
-    result = ""
-    for match in matches:
-        profession = match[2]  # 匹配到的专业
-        level = match[3] if match[3] else "未指定"  # 匹配到的等级，如果没有匹配到则返回"未指定"
-        result += profession + level
-
-    return result
 
 class BidInfoSpider(scrapy.Spider):
     """在公共交易平台查询招标信息"""
@@ -253,7 +118,7 @@ class BidInfoSpider(scrapy.Spider):
                 # return None
 
             cur_page = data['currentpage'] + 1
-            while cur_page <= data['ttlpage']:
+            if cur_page <= data['ttlpage']:
                 cur_page += 1
                 url = add_or_replace_parameter(response.url, 'PAGENUMBER', str(cur_page))
                 yield scrapy.Request(url=url, callback=self.parse, method='POST')
@@ -317,35 +182,12 @@ class BidInfoSpider(scrapy.Spider):
             if url:
                 yield scrapy.Request(url=url, callback=self.parse_results, meta={'project_item': project_item})
 
-    def remove_script_tags(self,html_content):
-        soup = BeautifulSoup(html_content, "html.parser")
 
-        # 移除所有 <script> 标签
-        for script in soup.find_all("script"):
-            script.decompose()
-
-        return str(soup)
 
     def parse_notice(self, response):
         project_item = response.meta['project_item']
-        project_item['notice_content'] = self.remove_script_tags(response.text)
-        html_text = response.text
-        # 用 readability 提取正文
-        doc = Document(html_text)
-        content_html = doc.summary()  # 提取的是 HTML 格式正文
-        # 可进一步用 lxml 解析出纯文本
-        content_tree = html.fromstring(content_html)
-        pure_text = content_tree.text_content()
+        analyse_notice(response.text, project_item)
 
-        construction_funds = extract_funding_source(pure_text)
-        project_duration = extract_duration(pure_text)
-        company_req = extract_construction_qualification(pure_text)
-        person_req = extract_profession_and_level(pure_text)
-
-        project_item['company_req'] = company_req
-        project_item['person_req'] = person_req
-        project_item['construction_funds'] = construction_funds
-        project_item['project_duration'] = project_duration
         logging.debug(f'project content:{dict(project_item)}')
         self.processed_projects += 1
         yield project_item

@@ -68,7 +68,7 @@ class BidSaverPipeline:
             # spider.logger.info(f"ProjectItem data: {dict(adapter)}")
             
             # 检查必要字段
-            required_fields = ['title', 'timeShow', 'platformName', 'classifyShow', 'url', 'districtShow']
+            required_fields = ['title', 'timeShow', 'project_id', 'notice_content']
             missing_fields = [field for field in required_fields if not adapter.get(field)]
             if missing_fields:
                 spider.logger.error(f"ProjectItem missing required fields: {missing_fields}")
@@ -78,7 +78,7 @@ class BidSaverPipeline:
             time_show = adapter['timeShow']
             if isinstance(time_show, str):
                 try:
-                    time_show = datetime.strptime(time_show, '%Y-%m-%d')
+                    time_show = datetime.strptime(time_show, '%Y-%m-%d %H:%M:%S')
                 except ValueError:
                     spider.logger.warning(f"Invalid time format for project {project_id}: {time_show}")
                     time_show = None
@@ -88,11 +88,11 @@ class BidSaverPipeline:
                 project_id=project_id,
                 title=adapter['title'],
                 time_show=time_show,
-                platform_name=adapter['platformName'],
-                classify_show=adapter['classifyShow'],
-                url=adapter['url'],
+                platform_name=adapter.get('platform_name',''),
+                classify_show=adapter.get('classifyShow',''),
+                url=adapter.get('url',''),
                 notice_content=adapter.get('notice_content', ''),
-                district_show=adapter['districtShow'],
+                district_show=adapter.get('districtShow',''),
                 session_size=adapter.get('session_size', 0),
                 company_req=adapter.get('company_req', ''),
                 person_req=adapter.get('person_req', ''),
@@ -203,10 +203,10 @@ class BidSaverPipeline:
                 spider.logger.debug(f"Creating new bid section: {adapter['section_name']}")
                 bid_section = BidSection(
                     project_id=project_id,
-                    section_id=adapter['section_id'],
-                    section_name=adapter['section_name'],
-                    session_size=adapter.get('session_size'),
-                    lot_ctl_amt=adapter.get('lot_ctl_amt'),
+                    section_id=adapter.get('section_id', '001'),
+                    section_name=adapter.get('section_name', ''),
+                    session_size=adapter.get('session_size',0),
+                    lot_ctl_amt=adapter.get('lot_ctl_amt',0),
                     bid_size=adapter.get('bid_size'),
                     bid_open_time=adapter.get('bid_open_time'),
                     info_source=adapter.get('info_source'),
