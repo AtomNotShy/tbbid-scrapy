@@ -37,7 +37,7 @@ class CompanyEmpInfoSpider(scrapy.Spider):
                   AND bidder_name != ''
             ) AS sub
             ORDER BY RANDOM()
-            LIMIT 400;
+            LIMIT 2;
         """)
         
         companies = self.session.execute(query).fetchall()
@@ -46,7 +46,8 @@ class CompanyEmpInfoSpider(scrapy.Spider):
         # 使用生成器处理公司列表
         for name in self.expand_companies(companies):
             company_item = CompanyItem()
-            company_item["name"] = name # company name
+            #company_item["name"] = name # company name
+            company_item["name"] ='元润建设工程有限'
             # 构建搜索URL
             search_url = f'{self.base_url}/outside/corps?keywords={quote(company_item["name"])}'
             logging.info(f'开始爬取{company_item["name"]}')
@@ -55,6 +56,8 @@ class CompanyEmpInfoSpider(scrapy.Spider):
                 callback=self.parse_search_result,
                 meta={'company_item': company_item}
             )
+            return
+
 
     def expand_companies(self, companies):
         """展开包含分号的公司名称，生成器返回公司名称"""
@@ -144,33 +147,33 @@ class CompanyEmpInfoSpider(scrapy.Spider):
 
     def parse_employee_detail(self, response):
         employee = response.meta['employee']
-        logging.info(f'开始解析员工{employee["name"]}详情')
+        logging.info(f'开始解析注册人员{employee["name"]}详情')
         birth_date = response.xpath(
             'string(//td[contains(text(), "出生日期")]/following-sibling::td[1])').get().strip()
         if birth_date:
             employee['birth_date'] = birth_date
+        yield employee
 
         # 如果业绩栏为空则直接返回员工信息
         cols = response.xpath('//tbody/tr').extract()
         if not cols:
-            logging.info('业绩为空')
-            yield employee
+            logging.info(f'{employee["name"]}业绩为空')
             return
         detail_urls = response.xpath('//tbody/tr/td[6]/a/@data-details').extract()
         data_levels = response.xpath('//tbody/tr/td[2]/text()').extract()
         roles = response.xpath('//tbody/tr/td[5]/text()').extract()
 
         timestamp_ms = int(time.time() * 1000)
-        
         for role,url,level in zip(roles,detail_urls,data_levels):
-            if url is None or role != '项目经理':
+            if url is None:
+                logging.warning('url is None')
                 continue
             perform = PersonPerformanceItem()
             perform["name"] = employee['name']
             perform["corp_code"] = employee['corp_code']
             perform['corp_name'] = employee['corp_name']
             perform['data_level'] = level
-            perform['role'] = '项目经理'
+            perform['role'] = employee['role']
             url = self.base_url + url + f'?_={timestamp_ms}'
             yield scrapy.Request(
                 url=url,
@@ -193,9 +196,11 @@ class CompanyEmpInfoSpider(scrapy.Spider):
         for person in person_list:
             employee_item = EmployeeItem()
             employee_item['corp_code'] = corp_code
-            if not person.xpath('./td[2]//a/text()').get():
+            name = person.xpath('./td[2]//a/text()').get()
+            if not name:
+                logging.warning('get name failed')
                 continue
-            employee_item['name'] = person.xpath('./td[2]//a/text()').get().strip()
+            employee_item['name'] = name.strip()
             employee_item['major'] = person.xpath('./td[7]/text()').get().strip().split('、')
             employee_item['corp_code'] = corp_code
             employee_item['cert_code'] = person.xpath('./td[3]/text()').get()
@@ -204,7 +209,8 @@ class CompanyEmpInfoSpider(scrapy.Spider):
             # 添加公司名称用于个人业绩记录
             employee_item['corp_name'] = company_item['name']
             url = person.xpath('./td[2]//a/@href').get()
-            logging.info(f'开始分析员工：{employee_item["name"]}')
+            logging.debug(f'开始分析员工：{employee_item["name"]}')
+
             if url.startswith('/outside/persondetail'):
                 new_url = url.replace('/outside/persondetail', '/outside/listpersonperformance')
                 perform_url = self.base_url + new_url + f'&_={timestamp_ms}'
