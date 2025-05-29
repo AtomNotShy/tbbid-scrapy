@@ -37,7 +37,7 @@ class CompanyEmpInfoSpider(scrapy.Spider):
                   AND bidder_name != ''
             ) AS sub
             ORDER BY RANDOM()
-            LIMIT 2;
+            LIMIT 200;
         """)
         
         companies = self.session.execute(query).fetchall()
@@ -46,8 +46,8 @@ class CompanyEmpInfoSpider(scrapy.Spider):
         # 使用生成器处理公司列表
         for name in self.expand_companies(companies):
             company_item = CompanyItem()
-            #company_item["name"] = name # company name
-            company_item["name"] ='元润建设工程有限'
+            company_item["name"] = name # company name
+            # company_item["name"] ='元润建设工程有限公司'
             # 构建搜索URL
             search_url = f'{self.base_url}/outside/corps?keywords={quote(company_item["name"])}'
             logging.info(f'开始爬取{company_item["name"]}')
