@@ -1,0 +1,28 @@
+name: Deploy scrapy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: tbbid
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy backend via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ALIYUN_HOST }}
+          username: ${{ secrets.ALIYUN_USER }}
+          key: ${{ secrets.ALIYUN_SSH_KEY }}
+          script: |
+            cd /home/tbbid/scrapy
+            git fetch origin
+            git reset --hard origin/main
+
+            source .venv/bin/activate
+            pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+     
